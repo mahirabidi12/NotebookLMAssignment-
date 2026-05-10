@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
 import { v4 as uuidv4 } from "uuid";
-import { parsePDF, parseTXT } from "../services/pdfParser.js";
+import { parseCSV, parsePDF, parseTXT } from "../services/pdfParser.js";
 import { chunkText } from "../services/chunker.js";
 import { batchEmbed } from "../services/embeddingService.js";
 import Chunk from "../models/Chunk.js";
@@ -14,15 +14,21 @@ router.post("/", upload.single("file"), async (req, res) => {
     const file = req.file;
     if (!file) return res.status(400).json({ error: "No file uploaded" });
 
-    const isPDF = file.mimetype === "application/pdf" || file.originalname.endsWith(".pdf");
-    const isTXT = file.mimetype === "text/plain" || file.originalname.endsWith(".txt");
+    const filename = file.originalname.toLowerCase();
+    const isPDF = file.mimetype === "application/pdf" || filename.endsWith(".pdf");
+    const isTXT = file.mimetype === "text/plain" || filename.endsWith(".txt");
+    const isCSV =
+      file.mimetype === "text/csv" ||
+      file.mimetype === "application/csv" ||
+      file.mimetype === "application/vnd.ms-excel" ||
+      filename.endsWith(".csv");
 
-    if (!isPDF && !isTXT) {
-      return res.status(400).json({ error: "Only PDF and TXT files are supported" });
+    if (!isPDF && !isTXT && !isCSV) {
+      return res.status(400).json({ error: "Only PDF, TXT, and CSV files are supported" });
     }
 
     // 1. Parse → pages
-    const pages = isPDF ? await parsePDF(file.buffer) : parseTXT(file.buffer);
+    const pages = isPDF ? await parsePDF(file.buffer) : isCSV ? parseCSV(file.buffer) : parseTXT(file.buffer);
 
     // 2. Chunk each page, track page number per chunk
     const rawChunks = [];

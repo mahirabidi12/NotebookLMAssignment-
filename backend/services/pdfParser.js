@@ -36,3 +36,70 @@ export async function parsePDF(buffer) {
 export function parseTXT(buffer) {
   return [{ pageNumber: 1, text: buffer.toString("utf-8") }];
 }
+
+function parseCSVRows(csvText) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < csvText.length; i++) {
+    const char = csvText[i];
+    const next = csvText[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        field += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      row.push(field.trim());
+      field = "";
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && next === "\n") i++;
+      row.push(field.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      field = "";
+      continue;
+    }
+
+    field += char;
+  }
+
+  row.push(field.trim());
+  if (row.some(Boolean)) rows.push(row);
+
+  return rows;
+}
+
+/**
+ * Parse a CSV buffer and return readable row text as a single page.
+ */
+export function parseCSV(buffer) {
+  const rows = parseCSVRows(buffer.toString("utf-8"));
+  if (rows.length === 0) return [{ pageNumber: 1, text: "" }];
+
+  const headers = rows[0].map((header, index) => header || `Column ${index + 1}`);
+  const dataRows = rows.slice(1);
+
+  const text = dataRows
+    .map((row, rowIndex) => {
+      const values = headers.map((header, columnIndex) => {
+        const value = row[columnIndex] ?? "";
+        return `${header}: ${value}`;
+      });
+      return `Row ${rowIndex + 1}\n${values.join("\n")}`;
+    })
+    .join("\n\n");
+
+  return [{ pageNumber: 1, text }];
+}

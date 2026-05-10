@@ -51,7 +51,7 @@ export default function UploadPanel({ onDocReady }) {
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.txt"
+          accept=".pdf,.txt,.csv"
           style={{ display: "none" }}
           onChange={onInputChange}
         />
@@ -60,7 +60,7 @@ export default function UploadPanel({ onDocReady }) {
           <>
             <span className="drop-icon">☁️</span>
             <p className="drop-title">Drop your file here</p>
-            <p className="drop-sub">PDF or TXT — click to browse</p>
+            <p className="drop-sub">PDF, TXT, or CSV — click to browse</p>
           </>
         )}
 
