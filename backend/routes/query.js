@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import { getEmbedding } from "../services/embeddingService.js";
 import { getGeminiResponse } from "../services/geminiService.js";
+import { generateHypothetical } from "../services/hydeService.js";
 import Chunk from "../models/Chunk.js";
 
 const router = express.Router();
@@ -13,8 +14,9 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "docId and question are required" });
     }
 
-    // 1. Embed the user question (input_type: query)
-    const queryVector = await getEmbedding(question, "query");
+    // 1. HyDE — generate a hypothetical passage, embed it as "passage" for better retrieval
+    const hypothetical = await generateHypothetical(question);
+    const queryVector = await getEmbedding(hypothetical, "passage");
 
     // 2. Vector search — top 5 chunks from this document
     const results = await Chunk.aggregate([
